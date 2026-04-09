@@ -1,0 +1,11 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+sora.db
+analysis/
+reels/
+vision_output.log
+vision_pipeline.pid
+vision_progress.json
+.DS_Store
