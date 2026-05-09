@@ -236,11 +236,6 @@ def upload_zone():
     return send_file(str(STATIC_DIR / "upload-zone.html"))
 
 
-@app.route("/casino")
-def casino():
-    return send_file(str(STATIC_DIR / "casino.html"))
-
-
 @app.route("/api/upload", methods=["POST"])
 def api_upload():
     if "video" not in request.files:
