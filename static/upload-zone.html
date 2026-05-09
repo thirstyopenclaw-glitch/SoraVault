@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Zone — SoraVault</title>
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface2: #1a1a26;
+            --border: #2a2a3a;
+            --text: #e0e0e8;
+            --text-dim: #8888a0;
+            --accent: #00e5ff;
+            --accent2: #ff00d4;
+            --accent-glow: rgba(0, 229, 255, 0.3);
+            --gold: #ffd700;
+            --success: #00ff88;
+            --error: #ff4466;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--surface) 0%, #0d0d18 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            font-size: 22px;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+            text-decoration: none;
+        }
+
+        .nav-link {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 13px;
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .main {
+            flex: 1;
+            max-width: 720px;
+            width: 100%;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .page-subtitle {
+            color: var(--text-dim);
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 16px;
+            padding: 48px 32px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s;
+            background: var(--surface);
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.drag-over {
+            border-color: var(--accent);
+            background: rgba(0, 229, 255, 0.04);
+            box-shadow: 0 0 30px var(--accent-glow);
+        }
+
+        .drop-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .drop-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .drop-label {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .drop-hint {
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+
+        .selected-file {
+            display: none;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-top: 12px;
+            font-size: 13px;
+            color: var(--accent);
+            align-items: center;
+            gap: 10px;
+        }
+
+        .selected-file.visible { display: flex; }
+
+        .preview-video {
+            display: none;
+            width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            background: #000;
+            margin-top: 12px;
+            object-fit: contain;
+        }
+
+        .preview-video.visible { display: block; }
+
+        .form-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .form-section h2 {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            margin-bottom: 18px;
+        }
+
+        .field {
+            margin-bottom: 16px;
+        }
+
+        .field label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .field input,
+        .field textarea {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+            resize: vertical;
+        }
+
+        .field input:focus,
+        .field textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .field input::placeholder,
+        .field textarea::placeholder { color: var(--text-dim); }
+
+        .dims {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .btn-upload {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--accent), #0099cc);
+            border: none;
+            border-radius: 10px;
+            color: #000;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-upload:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px var(--accent-glow);
+        }
+
+        .btn-upload:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .progress-bar-wrap {
+            display: none;
+            background: var(--surface2);
+            border-radius: 8px;
+            overflow: hidden;
+            height: 8px;
+            margin-top: 14px;
+        }
+
+        .progress-bar-wrap.visible { display: block; }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent2));
+            border-radius: 8px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .status-msg {
+            display: none;
+            padding: 14px 18px;
+            border-radius: 10px;
+            font-size: 14px;
+            margin-top: 16px;
+            font-weight: 500;
+        }
+
+        .status-msg.success {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 255, 136, 0.08);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            color: var(--success);
+        }
+
+        .status-msg.error {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 68, 102, 0.08);
+            border: 1px solid rgba(255, 68, 102, 0.3);
+            color: var(--error);
+        }
+
+        .result-link {
+            display: none;
+            text-align: center;
+            margin-top: 16px;
+        }
+
+        .result-link.visible { display: block; }
+
+        .result-link a {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 13px;
+            padding: 8px 20px;
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            transition: all 0.2s;
+            margin: 0 6px;
+        }
+
+        .result-link a:hover {
+            background: rgba(0, 229, 255, 0.1);
+        }
+
+        @media (max-width: 600px) {
+            .dims { grid-template-columns: 1fr; }
+            .main { margin: 20px auto; }
+            .page-title { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <a href="/" class="logo">SORAVAULT</a>
+    <a href="/" class="nav-link">← Back to Gallery</a>
+</div>
+
+<div class="main">
+    <div class="page-title">Upload Zone</div>
+    <div class="page-subtitle">Add videos to your Sora library. Uploaded files go into drafts and are immediately searchable.</div>
+
+    <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" accept="video/mp4,video/quicktime,video/webm,video/x-matroska,.mp4,.mov,.webm,.mkv">
+        <span class="drop-icon">🎬</span>
+        <div class="drop-label">Drop a video here</div>
+        <div class="drop-hint">or click to browse — MP4, MOV, WebM, MKV supported</div>
+    </div>
+
+    <div class="selected-file" id="selectedFile">
+        <span>📎</span>
+        <span id="selectedFileName"></span>
+        <span id="selectedFileSize" style="margin-left:auto;color:var(--text-dim)"></span>
+    </div>
+
+    <video class="preview-video" id="previewVideo" muted controls></video>
+
+    <div class="form-section">
+        <h2>Video Details <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></h2>
+
+        <div class="field">
+            <label>Prompt</label>
+            <textarea id="promptField" rows="3" placeholder="The AI prompt used to generate this video…"></textarea>
+        </div>
+
+        <div class="field">
+            <label>Caption</label>
+            <textarea id="captionField" rows="2" placeholder="A short description or title…"></textarea>
+        </div>
+
+        <div class="dims">
+            <div class="field">
+                <label>Width (px)</label>
+                <input type="number" id="widthField" placeholder="e.g. 1080" min="1">
+            </div>
+            <div class="field">
+                <label>Height (px)</label>
+                <input type="number" id="heightField" placeholder="e.g. 1920" min="1">
+            </div>
+        </div>
+    </div>
+
+    <button class="btn-upload" id="uploadBtn" disabled onclick="startUpload()">
+        Select a video to upload
+    </button>
+
+    <div class="progress-bar-wrap" id="progressWrap">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="status-msg" id="statusMsg"></div>
+
+    <div class="result-link" id="resultLink"></div>
+</div>
+
+<script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const selectedFile = document.getElementById('selectedFile');
+    const selectedFileName = document.getElementById('selectedFileName');
+    const selectedFileSize = document.getElementById('selectedFileSize');
+    const previewVideo = document.getElementById('previewVideo');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const progressWrap = document.getElementById('progressWrap');
+    const progressBar = document.getElementById('progressBar');
+    const statusMsg = document.getElementById('statusMsg');
+    const resultLink = document.getElementById('resultLink');
+
+    let chosenFile = null;
+
+    function formatBytes(b) {
+        if (b < 1024) return b + ' B';
+        if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+        return (b / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function setFile(file) {
+        chosenFile = file;
+        selectedFileName.textContent = file.name;
+        selectedFileSize.textContent = formatBytes(file.size);
+        selectedFile.classList.add('visible');
+
+        const url = URL.createObjectURL(file);
+        previewVideo.src = url;
+        previewVideo.classList.add('visible');
+
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = 'Upload to Vault';
+
+        statusMsg.className = 'status-msg';
+        statusMsg.textContent = '';
+        resultLink.className = 'result-link';
+        resultLink.innerHTML = '';
+        progressBar.style.width = '0%';
+        progressWrap.classList.remove('visible');
+    }
+
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files[0]) setFile(fileInput.files[0]);
+    });
+
+    dropZone.addEventListener('dragover', e => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+    });
+
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('video/')) {
+            setFile(file);
+        } else {
+            showStatus('error', 'Please drop a video file (MP4, MOV, WebM, or MKV).');
+        }
+    });
+
+    function showStatus(type, msg) {
+        const icon = type === 'success' ? '✅' : '❌';
+        statusMsg.innerHTML = `<span>${icon}</span><span>${msg}</span>`;
+        statusMsg.className = `status-msg ${type}`;
+    }
+
+    function startUpload() {
+        if (!chosenFile) return;
+
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = 'Uploading…';
+        progressWrap.classList.add('visible');
+        progressBar.style.width = '5%';
+        statusMsg.className = 'status-msg';
+        resultLink.className = 'result-link';
+
+        const formData = new FormData();
+        formData.append('video', chosenFile);
+        formData.append('prompt', document.getElementById('promptField').value.trim());
+        formData.append('caption', document.getElementById('captionField').value.trim());
+        formData.append('width', document.getElementById('widthField').value || '0');
+        formData.append('height', document.getElementById('heightField').value || '0');
+
+        const xhr = new XMLHttpRequest();
+
+        xhr.upload.addEventListener('progress', e => {
+            if (e.lengthComputable) {
+                const pct = Math.round((e.loaded / e.total) * 90) + 5;
+                progressBar.style.width = pct + '%';
+            }
+        });
+
+        xhr.addEventListener('load', () => {
+            progressBar.style.width = '100%';
+            if (xhr.status === 200) {
+                const data = JSON.parse(xhr.responseText);
+                showStatus('success', 'Video uploaded and indexed successfully!');
+                resultLink.innerHTML = `
+                    <a href="/video/${data.id}" target="_blank">▶ Play Video</a>
+                    <a href="/?q=${encodeURIComponent(data.id)}">View in Gallery</a>
+                `;
+                resultLink.classList.add('visible');
+                uploadBtn.textContent = 'Upload Another';
+                uploadBtn.disabled = false;
+                chosenFile = null;
+            } else {
+                let errMsg = 'Upload failed.';
+                try { errMsg = JSON.parse(xhr.responseText).error || errMsg; } catch {}
+                showStatus('error', errMsg);
+                uploadBtn.textContent = 'Retry Upload';
+                uploadBtn.disabled = false;
+            }
+        });
+
+        xhr.addEventListener('error', () => {
+            showStatus('error', 'Network error — please try again.');
+            uploadBtn.textContent = 'Retry Upload';
+            uploadBtn.disabled = false;
+        });
+
+        xhr.open('POST', '/api/upload');
+        xhr.send(formData);
+    }
+</script>
+
+</body>
+</html>

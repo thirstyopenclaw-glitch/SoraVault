@@ -6,8 +6,13 @@ Browsable video gallery at sora.thirstyai.live
 import json
 import sqlite3
 import os
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from flask import Flask, request, jsonify, send_file, send_from_directory, abort
+from werkzeug.utils import secure_filename
+
+ALLOWED_EXTENSIONS = {"mp4", "mov", "webm", "mkv"}
 
 PROJECT_DIR = Path(__file__).parent
 DB_PATH = PROJECT_DIR / "sora.db"
@@ -224,6 +229,58 @@ def serve_video(video_id: str):
                 return send_file(str(video_path), mimetype="video/mp4", conditional=True)
 
     abort(404)
+
+
+@app.route("/upload-zone")
+def upload_zone():
+    return send_file(str(STATIC_DIR / "upload-zone.html"))
+
+
+@app.route("/api/upload", methods=["POST"])
+def api_upload():
+    if "video" not in request.files:
+        return jsonify({"error": "No video file provided"}), 400
+
+    file = request.files["video"]
+    if not file.filename:
+        return jsonify({"error": "No file selected"}), 400
+
+    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+    if ext not in ALLOWED_EXTENSIONS:
+        return jsonify({"error": f"File type '{ext}' not allowed. Use mp4, mov, webm, or mkv."}), 400
+
+    video_id = str(uuid.uuid4())
+    prompt = request.form.get("prompt", "").strip()
+    caption = request.form.get("caption", "").strip()
+    width = int(request.form.get("width", 0)) or None
+    height = int(request.form.get("height", 0)) or None
+
+    dest_dir = SORA_BACKUP / "v2_draft" / "videos"
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest_path = dest_dir / f"{video_id}.mp4"
+    file.save(str(dest_path))
+
+    file_size = dest_path.stat().st_size
+    now_human = datetime.now(timezone.utc).strftime("%b %d, %Y")
+
+    conn = get_db()
+    conn.execute(
+        """
+        INSERT INTO videos
+            (id, source, prompt, caption, generation_type, width, height,
+             has_video, video_path, posted_at, posted_at_human,
+             like_count, view_count, share_count, remix_count,
+             cameos, tags, topic_labels, file_size_bytes)
+        VALUES (?, 'v2_draft', ?, ?, 'upload', ?, ?,
+                1, ?, ?, ?, 0, 0, 0, 0, '[]', '[]', '[]', ?)
+        """,
+        (video_id, prompt or None, caption or None, width, height,
+         str(dest_path), datetime.now(timezone.utc).timestamp(), now_human, file_size),
+    )
+    conn.commit()
+    conn.close()
+
+    return jsonify({"ok": True, "id": video_id, "path": f"/video/{video_id}"})
 
 
 if __name__ == "__main__":
